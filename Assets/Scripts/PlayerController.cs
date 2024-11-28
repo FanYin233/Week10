@@ -11,6 +11,14 @@ public class PlayerController : MonoBehaviour
     public float groundCheckRadius = 0.2f;
     public LayerMask groundLayer;
 
+    public float jumpForce = 10f;
+
+    public float terminalSpeed = -10f;
+
+    public float coyoteTime = 0.2f;
+    private float coyoteTimeCounter = 0f;
+
+
     public enum FacingDirection
     {
         left,
@@ -33,8 +41,33 @@ public class PlayerController : MonoBehaviour
     private void MovementUpdate(Vector2 playerInput)
     {
         Vector2 velocity = rb.velocity;
+
         velocity.x = playerInput.x * moveSpeed;
+
+        if (IsGrounded())
+        {
+            coyoteTimeCounter = coyoteTime;
+        }
+        else if (coyoteTimeCounter > 0)
+        {
+            coyoteTimeCounter -= Time.deltaTime;
+        }
+
+        if (coyoteTimeCounter > 0 && Input.GetButtonDown("Jump"))
+        {
+            velocity.y = jumpForce;
+            coyoteTimeCounter = 0;
+        }
+
+        if (velocity.y < terminalSpeed)
+        {
+            velocity.y = terminalSpeed;
+        }
+
         rb.velocity = velocity;
+
+
+        Debug.Log(coyoteTime);
     }
 
     public bool IsWalking()
