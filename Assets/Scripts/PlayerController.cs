@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -18,6 +19,15 @@ public class PlayerController : MonoBehaviour
     public float coyoteTime = 0.2f;
     private float coyoteTimeCounter = 0f;
 
+    public float dashSpeed = 15f;
+    public float dashTime = 0.2f;
+    private bool isDashing = false;
+    private float dashTimer = 0f;
+
+    private bool canDoubleJump = true;
+
+    private bool isGravityReversed = false;
+
 
     public enum FacingDirection
     {
@@ -33,41 +43,66 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         Vector2 playerInput = new Vector2(Input.GetAxis("Horizontal"), 0);
+
+        if (Input.GetKeyDown(KeyCode.LeftShift) && !isDashing)
+        {
+            isDashing = true;
+            dashTimer = dashTime;
+        }
+
+        if (isDashing)
+        {
+            dashTimer -= Time.deltaTime;
+            if (dashTimer <= 0)
+            {
+                isDashing = false;
+            }
+        }
+
         MovementUpdate(playerInput);
 
-        Debug.Log("IsGrounded: " + IsGrounded());
+        if (Input.GetKeyDown(KeyCode.G))
+        {
+            isGravityReversed = !isGravityReversed;
+            rb.gravityScale *= -1;
+            transform.Rotate(0, 180, 0);
+        }
+
+        MovementUpdate(playerInput);
     }
 
     private void MovementUpdate(Vector2 playerInput)
     {
         Vector2 velocity = rb.velocity;
 
-        velocity.x = playerInput.x * moveSpeed;
+        if (isDashing)
+        {
+            velocity.x = (GetFacingDirection() == FacingDirection.right ? 1 : -1) * dashSpeed;
+        }
+        else
+        {
+            velocity.x = playerInput.x * moveSpeed;
+        }
 
         if (IsGrounded())
         {
-            coyoteTimeCounter = coyoteTime;
-        }
-        else if (coyoteTimeCounter > 0)
-        {
-            coyoteTimeCounter -= Time.deltaTime;
+            canDoubleJump = true;
         }
 
-        if (coyoteTimeCounter > 0 && Input.GetButtonDown("Jump"))
+        if (Input.GetButtonDown("Jump"))
         {
-            velocity.y = jumpForce;
-            coyoteTimeCounter = 0;
-        }
-
-        if (velocity.y < terminalSpeed)
-        {
-            velocity.y = terminalSpeed;
+            if (IsGrounded())
+            {
+                velocity.y = jumpForce * (isGravityReversed ? -1 : 1);
+            }
+            else if (canDoubleJump)
+            {
+                velocity.y = jumpForce * (isGravityReversed ? -1 : 1);
+                canDoubleJump = false;
+            }
         }
 
         rb.velocity = velocity;
-
-
-        Debug.Log(coyoteTime);
     }
 
     public bool IsWalking()
